@@ -1,0 +1,130 @@
+<!-- 
+  Golsie Script Loader v1.0.0 - Hybrid Approach
+  Attempts to load from GitHub CDN, falls back to Webflow-hosted code
+  Test fallback: Add ?fallback to URL
+-->
+<script>
+(function() {
+  'use strict';
+  
+  // ===========================
+  // CONFIGURATION
+  // ===========================
+  
+  var GITHUB_URL = 'https://cdn.jsdelivr.net/gh/Shahaf1/golsie-webflow-website@main/golsie-full.js';
+  var TIMEOUT = 5000; // 5 seconds
+  var FALLBACK_ENABLED = true;
+  
+  // ===========================
+  // URL PARAMETER TESTING
+  // ===========================
+  
+  // Check for ?fallback parameter in URL
+  var urlParams = new URLSearchParams(window.location.search);
+  var FORCE_FALLBACK = urlParams.has('fallback');
+  
+  if (FORCE_FALLBACK) {
+    console.log('[Golsie] 🧪 TEST MODE: Fallback forced via ?fallback parameter');
+    console.log('[Golsie] Skipping GitHub CDN, loading Webflow fallback...');
+    
+    // Wait for DOM and fallback function to be ready
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', function() {
+        setTimeout(loadFallback, 100);
+      });
+    } else {
+      setTimeout(loadFallback, 100);
+    }
+    
+    return; // Skip GitHub loading entirely
+  }
+  
+  // ===========================
+  // NORMAL GITHUB LOADING
+  // ===========================
+  
+  // Track loading status
+  var githubLoaded = false;
+  var fallbackExecuted = false;
+  var startTime = Date.now();
+  
+  console.log('[Golsie] Attempting to load from GitHub CDN...');
+  
+  // Create script element
+  var script = document.createElement('script');
+  script.src = GITHUB_URL;
+  script.async = false; // Load synchronously
+  
+  // Success handler
+  script.onload = function() {
+    var loadTime = Date.now() - startTime;
+    githubLoaded = true;
+    console.log('[Golsie] ✓ GitHub CDN loaded successfully (' + loadTime + 'ms)');
+    
+    // Verify script actually loaded (check for our marker)
+    setTimeout(function() {
+      if (window.GolsieScriptLoaded && document.body.classList.contains('git-js')) {
+        console.log('[Golsie] ✓ Script initialized successfully');
+      } else {
+        console.warn('[Golsie] ⚠ Script loaded but not initialized');
+        loadFallback();
+      }
+    }, 100);
+  };
+  
+  // Error handler
+  script.onerror = function() {
+    console.warn('[Golsie] ✗ GitHub CDN failed to load');
+    if (FALLBACK_ENABLED && !fallbackExecuted) {
+      loadFallback();
+    }
+  };
+  
+  // Timeout handler
+  var timeoutId = setTimeout(function() {
+    if (!githubLoaded && FALLBACK_ENABLED && !fallbackExecuted) {
+      console.warn('[Golsie] ✗ GitHub CDN timed out after ' + (TIMEOUT/1000) + 's');
+      script.onload = null;
+      script.onerror = null;
+      loadFallback();
+    }
+  }, TIMEOUT);
+  
+  // ===========================
+  // FALLBACK LOADER
+  // ===========================
+  
+  function loadFallback() {
+    if (fallbackExecuted) return;
+    fallbackExecuted = true;
+    
+    console.log('[Golsie] → Loading fallback from Webflow...');
+    
+    // Check if fallback code exists
+    if (typeof window.GolsieFallback === 'function') {
+      try {
+        window.GolsieFallback();
+        
+        // Add body class marker
+        document.body.classList.add('webflow-js');
+        document.body.classList.remove('git-js'); // Just in case
+        
+        console.log('[Golsie] ✓ Fallback loaded successfully');
+      } catch (e) {
+        console.error('[Golsie] ✗ Fallback execution failed:', e);
+      }
+    } else {
+      console.error('[Golsie] ✗ No fallback code found (GolsieFallback function missing)');
+      console.error('[Golsie] Make sure fallback script is in Custom Code → Footer');
+    }
+  }
+  
+  // ===========================
+  // APPEND SCRIPT
+  // ===========================
+  
+  // Append script to head
+  (document.head || document.getElementsByTagName('head')[0]).appendChild(script);
+  
+})();
+</script>

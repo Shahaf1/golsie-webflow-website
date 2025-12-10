@@ -1,47 +1,24 @@
 document.addEventListener("DOMContentLoaded", function() {
   
-  // ===========================
-  // GLOBAL CONFIGURATION
-  // ===========================
-  
   var Config = {
-    // Menu Animation
     menuAnimationDuration: 250,
     menuToModalCloseDelay: 300,
-    
-    // Modal Animation
     modalAnimationDuration: 300,
     modalLoadingMinTime: 700,
     modalLoadingTimeout: 4000,
-    
-    // Content Fade Timing
     contentFadeInDelay: 100,
     songlinkExtraDelay: 300,
-    
-    // iOS Spotify Timeout
     spotifyTimeoutDesktop: 4000,
     spotifyTimeoutIOS: 1500,
-    
-    // Background Video
     videoKeepAliveInterval: 90000,
-    
-    // URL Cleanup
     hashRemovalDelay: 400,
-    
-    // Gallery
     galleryComponentLoadDelay: 500,
-
-    // Bandsintown Shows
     bandsintownApiKey: '43aa4e2b7dc992c34f1bf8503a4d9667',
     bandsintownArtistName: 'Golsie',
     showsMaxDisplay: 100,
     showsLoadingMinTime: 500,
     showsDefaultFilter: 'all'
   };
-  
-  // ===========================
-  // MODAL ELEMENT SELECTORS
-  // ===========================
   
   var ModalSelectors = {
     songlink: {
@@ -63,112 +40,86 @@ document.addEventListener("DOMContentLoaded", function() {
     }
   };
 
-  // ===========================
-  // MOBILE MENU
-  // ===========================
-  
   var MenuSystem = {
     config: {
       hamburgerSelector: '.hamburgerwrapper',
       headerSelector: '.headersection',
       whiteBorderClass: 'header--white-border'
     },
-    
     state: {
       isAnimating: false,
       menuOpen: false,
       scrollY: 0,
       modalWasOpen: false
     },
-    
     getAllHamburgers: function() {
       return document.querySelectorAll(this.config.hamburgerSelector);
     },
-    
     getAllHeaders: function() {
       return document.querySelectorAll(this.config.headerSelector);
     },
-    
     preventScroll: function(e) {
       if (MenuSystem.state.menuOpen) e.preventDefault();
     },
-    
     addWhiteBorder: function() {
       var headers = this.getAllHeaders();
       headers.forEach(function(header) {
         if (header) header.classList.add(MenuSystem.config.whiteBorderClass);
       });
     },
-    
     removeWhiteBorder: function() {
       var headers = this.getAllHeaders();
       headers.forEach(function(header) {
         if (header) header.classList.remove(MenuSystem.config.whiteBorderClass);
       });
     },
-    
     openMenu: function() {
       this.state.modalWasOpen = modalReady && ModalSystem.isModalOpen();
-      
       if (!this.state.modalWasOpen) {
         this.state.scrollY = window.scrollY;
         document.body.style.top = -this.state.scrollY + 'px';
       }
-      
       document.body.classList.add('no-scroll');
-      
       var self = this;
       setTimeout(function() {
         self.addWhiteBorder();
       }, Config.menuAnimationDuration);
-      
       this.state.menuOpen = true;
-      
       setTimeout(function() {
         if (modalReady && ModalSystem.isModalOpen()) {
           ModalSystem.close();
         }
       }, Config.menuAnimationDuration + Config.menuToModalCloseDelay);
     },
-    
     closeMenu: function() {
       document.body.classList.remove('no-scroll');
-      
       if (!this.state.modalWasOpen) {
         var top = parseInt(document.body.style.top || '0', 10);
         document.body.style.top = '';
         window.scrollTo(0, -top);
       }
-      
       this.removeWhiteBorder();
       this.state.menuOpen = false;
       this.state.modalWasOpen = false;
     },
-    
     toggle: function() {
       if (this.state.isAnimating) return;
       this.state.isAnimating = true;
-      
       if (!this.state.menuOpen) {
         this.openMenu();
       } else {
         this.closeMenu();
       }
-      
       var self = this;
       setTimeout(function() {
         self.state.isAnimating = false;
       }, Config.menuAnimationDuration);
     },
-    
     init: function() {
       var self = this;
-      
       document.addEventListener('touchmove', this.preventScroll, { passive: false });
       document.addEventListener('wheel', this.preventScroll, { passive: false });
-      
       var hamburgers = this.getAllHamburgers();
-      
       if (hamburgers.length > 0) {
         hamburgers.forEach(function(hamburger) {
           hamburger.addEventListener('click', function() {
@@ -178,13 +129,8 @@ document.addEventListener("DOMContentLoaded", function() {
       }
     }
   };
-  
   MenuSystem.init();
 
-  // ===========================
-  // BG VIDEO
-  // ===========================
-  
   var video = document.querySelector('.homepagebgvideo video');
   if (video) {
     function keepPlaying() {
@@ -201,14 +147,7 @@ document.addEventListener("DOMContentLoaded", function() {
     });
   }
 
-  // ===========================
-  // HASHTAG REMOVAL
-  // ===========================
-  
-  ['.morelinkswrapperlink',
-   '.footerdesktop .footerlogo .footerlogowrapperlink',
-   '.footermobile .footerlogo .footerlogowrapperlink'
-  ].forEach(function(selector) {
+  ['.morelinkswrapperlink','.footerdesktop .footerlogo .footerlogowrapperlink','.footermobile .footerlogo .footerlogowrapperlink'].forEach(function(selector) {
     var el = document.querySelector(selector);
     if (el) {
       el.addEventListener('click', function() {
@@ -219,69 +158,42 @@ document.addEventListener("DOMContentLoaded", function() {
     }
   });
 
-  // ===========================
-  // NAVIGATION ACTIVE STATE
-  // ===========================
-  
   var NavigationHelper = {
     config: {
       navLinkSelector: '[data-page]',
       activeClass: 'activepage',
-      // Pages that should stay active when viewing their subpages
       parentPages: ['shop', 'music', 'shows', 'memories']
     },
-    
     getCurrentPage: function() {
       var path = window.location.pathname;
       var segments = path.split('/').filter(Boolean);
-      
-      // No segments = home page
       if (segments.length === 0) return 'home';
-      
-      // Check if first segment is a parent page
       var firstSegment = segments[0];
-      
-      // If URL has multiple segments (e.g. /shop/product-name)
-      // and first segment is a parent page, return the parent
       if (segments.length > 1 && this.config.parentPages.indexOf(firstSegment) !== -1) {
         return firstSegment;
       }
-      
-      // Otherwise return the last segment (for single-level pages)
       return segments[segments.length - 1];
     },
-    
     updateActiveState: function() {
       var currentPage = this.getCurrentPage();
       var navLinks = document.querySelectorAll(this.config.navLinkSelector);
-      
       navLinks.forEach(function(link) {
         var linkPage = link.getAttribute('data-page');
-        
-        if (linkPage === currentPage || 
-            (currentPage === 'home' && (linkPage === '' || linkPage === 'home')) ||
-            (window.location.pathname === '/' && (linkPage === 'home' || linkPage === ''))) {
+        if (linkPage === currentPage || (currentPage === 'home' && (linkPage === '' || linkPage === 'home')) || (window.location.pathname === '/' && (linkPage === 'home' || linkPage === ''))) {
           link.classList.add(NavigationHelper.config.activeClass);
         } else {
           link.classList.remove(NavigationHelper.config.activeClass);
         }
       });
     },
-    
     init: function() {
       this.updateActiveState();
     }
   };
-  
   NavigationHelper.init();
-  
-  // ===========================
-  // PRODUCT GALLERY
-  // ===========================
-  
+
   var GallerySystem = {
     galleries: [],
-    
     createGallery: function(config) {
       return {
         config: config || {
@@ -291,24 +203,18 @@ document.addEventListener("DOMContentLoaded", function() {
           nextArrowSelector: '[data-gallery-next]',
           activeClass: 'activethumbnail'
         },
-        
         state: {
           currentIndex: 0,
           images: [],
           isLoading: false
         },
-        
         init: function() {
           var self = this;
-          
           this.mainImage = document.querySelector(this.config.mainImageSelector);
           this.thumbnails = document.querySelectorAll(this.config.thumbnailSelector);
           this.prevArrow = document.querySelector(this.config.prevArrowSelector);
           this.nextArrow = document.querySelector(this.config.nextArrowSelector);
-          
           if (!this.mainImage || this.thumbnails.length === 0) return false;
-          
-          // Collect image data from thumbnails
           this.thumbnails.forEach(function(thumb) {
             var img = thumb.querySelector('img');
             if (img) {
@@ -319,14 +225,10 @@ document.addEventListener("DOMContentLoaded", function() {
               });
             }
           });
-          
           if (this.thumbnails[0]) {
             this.thumbnails[0].classList.add(this.config.activeClass);
           }
-          
           this.mainImage.style.transition = 'opacity 0.3s ease';
-          
-          // Attach thumbnail click events
           this.thumbnails.forEach(function(thumb, index) {
             thumb.addEventListener('click', function(e) {
               e.preventDefault();
@@ -335,8 +237,6 @@ document.addEventListener("DOMContentLoaded", function() {
             });
             thumb.style.cursor = 'pointer';
           });
-          
-          // Attach arrow click events
           if (this.prevArrow) {
             this.prevArrow.addEventListener('click', function(e) {
               e.preventDefault();
@@ -344,7 +244,6 @@ document.addEventListener("DOMContentLoaded", function() {
             });
             this.prevArrow.style.cursor = 'pointer';
           }
-          
           if (this.nextArrow) {
             this.nextArrow.addEventListener('click', function(e) {
               e.preventDefault();
@@ -352,19 +251,13 @@ document.addEventListener("DOMContentLoaded", function() {
             });
             this.nextArrow.style.cursor = 'pointer';
           }
-          
-          // Keyboard navigation
           document.addEventListener('keydown', function(e) {
             if (e.key === 'ArrowLeft') self.prev();
             if (e.key === 'ArrowRight') self.next();
           });
-          
-          // Touch/swipe support
           this.setupTouchEvents();
-          
           return true;
         },
-        
         setupTouchEvents: function() {
           var self = this;
           var touchStartX = 0;
@@ -372,67 +265,49 @@ document.addEventListener("DOMContentLoaded", function() {
           var touchStartY = 0;
           var touchEndY = 0;
           var minSwipeDistance = 50;
-          
-          // Get the container to attach swipe events
           var swipeContainer = this.mainImage.parentElement || this.mainImage;
-          
           swipeContainer.addEventListener('touchstart', function(e) {
             touchStartX = e.changedTouches[0].screenX;
             touchStartY = e.changedTouches[0].screenY;
           }, { passive: true });
-          
           swipeContainer.addEventListener('touchend', function(e) {
             touchEndX = e.changedTouches[0].screenX;
             touchEndY = e.changedTouches[0].screenY;
             self.handleSwipe(touchStartX, touchEndX, touchStartY, touchEndY, minSwipeDistance);
           }, { passive: true });
         },
-        
         handleSwipe: function(startX, endX, startY, endY, minDistance) {
           var deltaX = endX - startX;
           var deltaY = endY - startY;
-          
-          // Check if horizontal swipe is dominant (not vertical scroll)
           if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > minDistance) {
             if (deltaX > 0) {
-              // Swipe right - go to previous
               this.prev();
             } else {
-              // Swipe left - go to next
               this.next();
             }
           }
         },
-        
         goToImage: function(index) {
           if (index < 0 || index >= this.state.images.length || this.state.isLoading) return;
-          
           this.state.isLoading = true;
           var imageData = this.state.images[index];
           var self = this;
-          
           this.mainImage.style.opacity = '0.3';
-          
           var preloader = new Image();
           preloader.onload = function() {
             self.mainImage.src = imageData.src;
             self.mainImage.srcset = imageData.srcset || imageData.src;
             if (imageData.sizes) self.mainImage.setAttribute('sizes', imageData.sizes);
-            
             setTimeout(function() {
               self.mainImage.style.opacity = '1';
               self.state.isLoading = false;
             }, 50);
           };
-          
           preloader.onerror = function() {
             self.mainImage.style.opacity = '1';
             self.state.isLoading = false;
           };
-          
           preloader.src = imageData.src;
-          
-          // Update thumbnails
           this.thumbnails.forEach(function(thumb, i) {
             if (i === index) {
               thumb.classList.add(self.config.activeClass);
@@ -440,22 +315,18 @@ document.addEventListener("DOMContentLoaded", function() {
               thumb.classList.remove(self.config.activeClass);
             }
           });
-          
           this.state.currentIndex = index;
         },
-        
         next: function() {
           var nextIndex = (this.state.currentIndex + 1) % this.state.images.length;
           this.goToImage(nextIndex);
         },
-        
         prev: function() {
           var prevIndex = (this.state.currentIndex - 1 + this.state.images.length) % this.state.images.length;
           this.goToImage(prevIndex);
         }
       };
     },
-    
     init: function(customConfig) {
       var gallery = this.createGallery(customConfig);
       var initialized = gallery.init();
@@ -464,21 +335,13 @@ document.addEventListener("DOMContentLoaded", function() {
       }
       return gallery;
     },
-    
     initAll: function() {
-      // Initialize default gallery with data attributes
       this.init();
     }
   };
-  
-  // Initialize default gallery after Webflow components load
   setTimeout(function() {
     GallerySystem.initAll();
   }, Config.galleryComponentLoadDelay);
-
-  // ===========================
-  // BANDSINTOWN SHOWS SYSTEM
-  // ===========================
 
   var ShowsSystem = {
     config: {
@@ -487,7 +350,6 @@ document.addEventListener("DOMContentLoaded", function() {
       loadingSelector: '[data-shows-state="loading"]',
       emptySelector: '[data-shows-state="empty"]'
     },
-    
     state: {
       allShows: [],
       upcomingShows: [],
@@ -497,125 +359,81 @@ document.addEventListener("DOMContentLoaded", function() {
       isLoading: false,
       isCached: false
     },
-    
     init: function() {
       var template = document.querySelector(this.config.templateSelector);
       var container = document.querySelector(this.config.containerSelector);
-      
       if (!template || !container) return;
-      
       template.style.display = 'none';
       this.template = template;
       this.container = container;
-      
       this.showLoading();
       this.setupFilterButtons();
       this.fetchShows();
     },
-    
     showLoading: function() {
       var loading = document.querySelector(this.config.loadingSelector);
       if (loading) loading.style.display = 'flex';
-      
       var empty = document.querySelector(this.config.emptySelector);
       if (empty) empty.style.display = 'none';
     },
-    
     hideLoading: function() {
       var loading = document.querySelector(this.config.loadingSelector);
       if (loading) loading.style.display = 'none';
     },
-    
     showEmpty: function() {
       var empty = document.querySelector(this.config.emptySelector);
       if (empty) empty.style.display = 'block';
     },
-    
     fetchShows: function() {
       var self = this;
-      
-      // Fetch upcoming shows
-      var upcomingUrl = 'https://rest.bandsintown.com/artists/' + 
-                        Config.bandsintownArtistName + 
-                        '/events?app_id=' + Config.bandsintownApiKey + 
-                        '&date=upcoming';
-      
-      // Fetch past shows
-      var pastUrl = 'https://rest.bandsintown.com/artists/' + 
-                    Config.bandsintownArtistName + 
-                    '/events?app_id=' + Config.bandsintownApiKey + 
-                    '&date=past';
-      
-      // Fetch both in parallel
+      var upcomingUrl = 'https://rest.bandsintown.com/artists/' + Config.bandsintownArtistName + '/events?app_id=' + Config.bandsintownApiKey + '&date=upcoming';
+      var pastUrl = 'https://rest.bandsintown.com/artists/' + Config.bandsintownArtistName + '/events?app_id=' + Config.bandsintownApiKey + '&date=past';
       Promise.all([
         fetch(upcomingUrl).then(function(response) { return response.json(); }),
         fetch(pastUrl).then(function(response) { return response.json(); })
-      ])
-      .then(function(results) {
+      ]).then(function(results) {
         self.state.upcomingShows = results[0] || [];
         self.state.pastShows = results[1] || [];
-        
-        // Combine all shows for "ALL" filter
         self.state.allShows = self.state.upcomingShows.concat(self.state.pastShows);
-        
         self.state.isCached = true;
-        
-        // Apply default filter
         self.applyFilter(Config.showsDefaultFilter);
-      })
-      .catch(function(error) {
+      }).catch(function(error) {
         self.hideLoading();
         self.showEmpty();
       });
     },
-
     applyFilter: function(filterType) {
       var self = this;
       self.state.currentFilter = filterType;
-      
-      // Determine which shows to display
       var showsToDisplay = [];
-      
       switch(filterType) {
         case 'all':
-          // All upcoming shows (Golsie + others if you add them later)
           showsToDisplay = self.state.upcomingShows;
           break;
-          
         case 'golsie':
-          // Only Golsie upcoming shows
           showsToDisplay = self.state.upcomingShows.filter(function(show) {
             return show.artist.name.toLowerCase() === 'golsie';
           });
           break;
-          
         case 'other':
-          // Only other artists' upcoming shows (for future)
           showsToDisplay = self.state.upcomingShows.filter(function(show) {
             return show.artist.name.toLowerCase() !== 'golsie';
           });
           break;
-          
         case 'previous':
-          // All past shows
           showsToDisplay = self.state.pastShows;
           break;
-          
         default:
           showsToDisplay = self.state.upcomingShows;
       }
-      
       self.state.filteredShows = showsToDisplay;
       self.renderShows(showsToDisplay);
       self.updateFilterButtons(filterType);
     },
-
     updateFilterButtons: function(activeFilter) {
       var buttons = document.querySelectorAll('[data-filter]');
-      
       buttons.forEach(function(button) {
         var filterType = button.getAttribute('data-filter');
-        
         if (filterType === activeFilter) {
           button.classList.add('active');
         } else {
@@ -623,99 +441,71 @@ document.addEventListener("DOMContentLoaded", function() {
         }
       });
     },
-
     setupFilterButtons: function() {
       var self = this;
       var buttons = document.querySelectorAll('[data-filter]');
-      
       buttons.forEach(function(button) {
         button.addEventListener('click', function() {
           var filterType = this.getAttribute('data-filter');
-          
-          // Don't clear - renderShows will handle it
           self.showLoading();
-          
-          // Apply filter (instant since cached)
           setTimeout(function() {
             self.applyFilter(filterType);
           }, 200);
         });
       });
-      
-      // Set default active state
       self.updateFilterButtons(Config.showsDefaultFilter);
     },
-
     renderShows: function(shows) {
       var self = this;
-      
-      // Clear existing shows (except template)
       var children = Array.from(self.container.children);
       children.forEach(function(child) {
-        if (child !== self.template && 
-            child.getAttribute('data-event-type') === 'generated') {
+        if (child !== self.template && child.getAttribute('data-event-type') === 'generated') {
           self.container.removeChild(child);
         }
       });
-      
       setTimeout(function() {
         self.hideLoading();
-        
         if (shows.length === 0) {
           self.showEmpty();
           return;
         }
-        
-        // Sort by date - newest first
         var sortedShows = shows.sort(function(a, b) {
           return new Date(b.datetime) - new Date(a.datetime);
         });
-        
         var displayShows = sortedShows.slice(0, Config.showsMaxDisplay);
-        
         displayShows.forEach(function(show) {
           self.createShowItem(show);
         });
       }, Config.showsLoadingMinTime);
     },
-    
     createShowItem: function(show) {
       var item = this.template.cloneNode(true);
       item.style.display = 'grid';
       item.setAttribute('data-event-type', 'generated');
       item.setAttribute('data-event-id', show.id);
-      
       var date = new Date(show.datetime);
       var dateFormatted = this.formatDate(date);
       var timeFormatted = this.formatTime(date);
-      
       var manualDate = item.getAttribute('data-event-date');
       var manualTime = item.getAttribute('data-event-time');
       var manualVenue = item.getAttribute('data-event-venue');
       var manualLocation = item.getAttribute('data-event-location');
-      
       var dateEl = item.querySelector('[data-target="date"]');
       if (dateEl) dateEl.textContent = manualDate || dateFormatted;
-      
       var timeEl = item.querySelector('[data-target="time"]');
       if (timeEl) timeEl.textContent = manualTime || timeFormatted;
-      
       var venueEl = item.querySelector('[data-target="venue"]');
       if (venueEl) venueEl.textContent = manualVenue || show.venue.name;
-      
       var locationEl = item.querySelector('[data-target="location"]');
       if (locationEl) {
         var apiLocation = show.venue.city + ', ' + show.venue.country;
         locationEl.textContent = manualLocation || apiLocation;
       }
-      
       var manualTicketUrl = item.getAttribute('data-event-ticket-url');
       var manualTicketText = item.getAttribute('data-event-ticket-text');
-      
       var ticketBtn = item.querySelector('[data-target="ticket-button"]');
       if (ticketBtn) {
         var ticketText = item.querySelector('[data-target="ticket-text"]');
-        
         var ticketUrl = manualTicketUrl;
         if (!ticketUrl) {
           if (show.offers && show.offers.length > 0 && show.offers[0].url) {
@@ -724,7 +514,6 @@ document.addEventListener("DOMContentLoaded", function() {
             ticketUrl = show.url;
           }
         }
-        
         var buttonText = manualTicketText;
         if (!buttonText) {
           if (show.offers && show.offers.length > 0 && show.offers[0].url) {
@@ -735,111 +524,76 @@ document.addEventListener("DOMContentLoaded", function() {
             buttonText = 'Tickets';
           }
         }
-        
         ticketBtn.href = ticketUrl;
-          ticketBtn.target = '_blank';
-          if (ticketText) ticketText.textContent = buttonText;
+        ticketBtn.target = '_blank';
+        if (ticketText) ticketText.textContent = buttonText;
+      }
+      var manualAddress = item.getAttribute('data-event-address');
+      var apiAddress = this.getFullAddress(show.venue);
+      var fullAddress = manualAddress || apiAddress;
+      var addressText = item.querySelector('[data-target="address-text"]');
+      if (addressText) addressText.textContent = fullAddress;
+      var mapsLink = item.querySelector('[data-target="maps-link"]');
+      if (mapsLink) {
+        var fullAddressForMaps = this.getFullAddressForMaps(show.venue);
+        if (fullAddressForMaps) {
+          var mapsUrl = 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(fullAddressForMaps);
+          mapsLink.href = mapsUrl;
+          mapsLink.target = '_blank';
+        } else if (show.venue.latitude && show.venue.longitude) {
+          var mapsUrl = 'https://www.google.com/maps/search/?api=1&query=' + show.venue.latitude + ',' + show.venue.longitude;
+          mapsLink.href = mapsUrl;
+          mapsLink.target = '_blank';
+        } else {
+          mapsLink.style.display = 'none';
         }
-        
-        // Handle address display
-        var manualAddress = item.getAttribute('data-event-address');
-        var apiAddress = this.getFullAddress(show.venue);
-        var fullAddress = manualAddress || apiAddress;
-        
-        var addressText = item.querySelector('[data-target="address-text"]');
-        if (addressText) addressText.textContent = fullAddress;
-        
-        var mapsLink = item.querySelector('[data-target="maps-link"]');
-        if (mapsLink) {
-          var fullAddressForMaps = this.getFullAddressForMaps(show.venue);
-          
-          if (fullAddressForMaps) {
-            // Use address string instead of coordinates
-            var mapsUrl = 'https://www.google.com/maps/search/?api=1&query=' + 
-                          encodeURIComponent(fullAddressForMaps);
-            mapsLink.href = mapsUrl;
-            mapsLink.target = '_blank';
-          } else if (show.venue.latitude && show.venue.longitude) {
-            // Fallback to coordinates if no address available
-            var mapsUrl = 'https://www.google.com/maps/search/?api=1&query=' + 
-                          show.venue.latitude + ',' + show.venue.longitude;
-            mapsLink.href = mapsUrl;
-            mapsLink.target = '_blank';
-          } else {
-            mapsLink.style.display = 'none';
-          }
-        }
-        
-        // Handle description
-        var manualDescription = item.getAttribute('data-event-description');
-        var apiDescription = show.description || 'No description available';
-        var fullDescription = manualDescription || apiDescription;
-        
-        var descText = item.querySelector('[data-target="description-text"]');
-        if (descText) descText.textContent = fullDescription;
-        
-        // Attach toggle handlers
-        this.attachToggleHandlers(item);
-        
-        this.container.appendChild(item);
-      },
-    
+      }
+      var manualDescription = item.getAttribute('data-event-description');
+      var apiDescription = show.description || 'No description available';
+      var fullDescription = manualDescription || apiDescription;
+      var descText = item.querySelector('[data-target="description-text"]');
+      if (descText) descText.textContent = fullDescription;
+      this.attachToggleHandlers(item);
+      this.container.appendChild(item);
+    },
     formatDate: function(date) {
-      var months = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 
-                    'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
+      var months = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
       var days = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
-      
       var month = months[date.getMonth()];
       var day = date.getDate();
       var dayName = days[date.getDay()];
-      
       return month + ' ' + day + ' ' + dayName;
     },
-    
     formatTime: function(date) {
       var hours = date.getHours();
       var minutes = date.getMinutes();
       var ampm = hours >= 12 ? 'PM' : 'AM';
-      
       hours = hours % 12;
       hours = hours ? hours : 12;
       minutes = minutes < 10 ? '0' + minutes : minutes;
-      
       return hours + ':' + minutes + ' ' + ampm;
     },
-
     getFullAddress: function(venue) {
       var parts = [];
       if (venue.street_address) parts.push(venue.street_address);
-      // Don't add city/region/country - they're already shown in location
-      
       return parts.length > 0 ? parts.join(', ') : 'Address not available';
     },
-
     getFullAddressForMaps: function(venue) {
       var parts = [];
       if (venue.street_address) parts.push(venue.street_address);
       if (venue.city) parts.push(venue.city);
       if (venue.region) parts.push(venue.region);
       if (venue.country) parts.push(venue.country);
-      // Don't include postal code
-      
       return parts.length > 0 ? parts.join(', ') : '';
     },
-
     attachToggleHandlers: function(item) {
       var self = this;
-      
-      // Address toggle handler - REPLACE button with address
       var addressBtn = item.querySelector('[data-action="toggle-address"]');
       var addressContent = item.querySelector('[data-target="address-content"]');
-      
       if (addressBtn && addressContent) {
         addressBtn.addEventListener('click', function(e) {
           e.preventDefault();
           e.stopPropagation();
-          
-          // Reset all other addresses back to button state
           document.querySelectorAll('[data-action="toggle-address"]').forEach(function(otherBtn) {
             if (otherBtn !== addressBtn) {
               var otherContent = otherBtn.parentElement.querySelector('[data-target="address-content"]');
@@ -850,44 +604,33 @@ document.addEventListener("DOMContentLoaded", function() {
               }
             }
           });
-          
-          // Hide button, show address
           addressBtn.style.display = 'none';
           addressContent.style.display = 'flex';
           addressContent.setAttribute('data-expanded', 'true');
         });
       }
-      
-      // Description popup handler - Centered at top
-        var descBtn = item.querySelector('[data-action="toggle-description"]');
-        var descPopup = item.querySelector('[data-target="description-popup"]');
-        var descClose = item.querySelector('[data-action="close-description"]');
-        
-        if (descBtn && descPopup) {
-          descBtn.addEventListener('click', function(e) {
-            e.preventDefault();
-            e.stopPropagation();
-            
-            // Reset all addresses back to button state
-            document.querySelectorAll('[data-action="toggle-address"]').forEach(function(addrBtn) {
-              var addrContent = addrBtn.parentElement.querySelector('[data-target="address-content"]');
-              if (addrContent && addrContent.getAttribute('data-expanded') === 'true') {
-                addrBtn.style.display = 'block';
-                addrContent.style.display = 'none';
-                addrContent.setAttribute('data-expanded', 'false');
-              }
-            });
-            
-            // Close all other open popups first
-            document.querySelectorAll('[data-target="description-popup"]').forEach(function(popup) {
-              if (popup !== descPopup) {
-                popup.style.display = 'none';
-                popup.setAttribute('data-visible', 'false');
-              }
-            });
-          
+      var descBtn = item.querySelector('[data-action="toggle-description"]');
+      var descPopup = item.querySelector('[data-target="description-popup"]');
+      var descClose = item.querySelector('[data-action="close-description"]');
+      if (descBtn && descPopup) {
+        descBtn.addEventListener('click', function(e) {
+          e.preventDefault();
+          e.stopPropagation();
+          document.querySelectorAll('[data-action="toggle-address"]').forEach(function(addrBtn) {
+            var addrContent = addrBtn.parentElement.querySelector('[data-target="address-content"]');
+            if (addrContent && addrContent.getAttribute('data-expanded') === 'true') {
+              addrBtn.style.display = 'block';
+              addrContent.style.display = 'none';
+              addrContent.setAttribute('data-expanded', 'false');
+            }
+          });
+          document.querySelectorAll('[data-target="description-popup"]').forEach(function(popup) {
+            if (popup !== descPopup) {
+              popup.style.display = 'none';
+              popup.setAttribute('data-visible', 'false');
+            }
+          });
           var isVisible = descPopup.getAttribute('data-visible') === 'true';
-          
           if (isVisible) {
             descPopup.style.display = 'none';
             descPopup.setAttribute('data-visible', 'false');
@@ -896,8 +639,6 @@ document.addEventListener("DOMContentLoaded", function() {
             descPopup.setAttribute('data-visible', 'true');
           }
         });
-        
-        // Close button handler
         if (descClose) {
           descClose.addEventListener('click', function(e) {
             e.preventDefault();
@@ -906,8 +647,6 @@ document.addEventListener("DOMContentLoaded", function() {
             descPopup.setAttribute('data-visible', 'false');
           });
         }
-        
-        // Close when clicking outside
         document.addEventListener('click', function(e) {
           if (!descPopup.contains(e.target) && !descBtn.contains(e.target)) {
             descPopup.style.display = 'none';
@@ -917,15 +656,10 @@ document.addEventListener("DOMContentLoaded", function() {
       }
     }
   };
-
   setTimeout(function() {
     ShowsSystem.init();
   }, Config.galleryComponentLoadDelay);
 
-  // ===========================
-  // HELPERS
-  // ===========================
-  
   var SpotifyHelper = {
     fetchOEmbed: function(spotifyUrl, callback) {
       fetch('https://open.spotify.com/oembed?url=' + encodeURIComponent(spotifyUrl))
@@ -947,10 +681,6 @@ document.addEventListener("DOMContentLoaded", function() {
     }
   };
 
-  // ===========================
-  // MODAL SYSTEM
-  // ===========================
-  
   var ModalSystem = {
     overlay: null,
     container: null,
@@ -959,26 +689,21 @@ document.addEventListener("DOMContentLoaded", function() {
     currentModalType: null,
     currentContent: null,
     modalTypes: {},
-    
     config: {
       overlayClass: 'modaloverlay',
       containerClass: 'modalcontainer',
       activeClass: 'modal-active',
       animationDuration: Config.modalAnimationDuration
     },
-    
     init: function() {
       this.overlay = document.querySelector('.' + this.config.overlayClass);
       if (!this.overlay) return false;
-      
       this.container = this.overlay.querySelector('.' + this.config.containerClass);
       if (!this.container) return false;
-      
       this.overlay.style.display = 'none';
       this.setupEventListeners();
       return true;
     },
-    
     registerModalType: function(typeName, config) {
       this.modalTypes[typeName] = {
         contentClass: config.contentClass || null,
@@ -987,14 +712,11 @@ document.addEventListener("DOMContentLoaded", function() {
         updateContent: config.updateContent || null
       };
     },
-    
     setupEventListeners: function() {
       var self = this;
-      
       this.overlay.addEventListener('click', function(e) {
         if (e.target === self.overlay) self.close();
       });
-      
       this.overlay.addEventListener('click', function(e) {
         if (e.target.classList.contains('modalclose') || e.target.closest('.modalclose')) {
           e.preventDefault();
@@ -1002,71 +724,54 @@ document.addEventListener("DOMContentLoaded", function() {
           self.close();
         }
       });
-      
       document.addEventListener('keydown', function(e) {
         if (e.key === 'Escape' && self.isOpen) self.close();
       });
     },
-    
     open: function(modalType, data) {
       if (!this.overlay || this.isOpen) return;
-      
       var typeConfig = this.modalTypes[modalType];
       if (!typeConfig) return;
-      
       var content = this.container.querySelector('.' + typeConfig.contentClass);
       if (!content) return;
-      
       this.currentModalType = modalType;
       this.currentContent = content;
       content.style.display = 'flex';
-
       if (typeConfig.updateContent) {
         typeConfig.updateContent.call(this, content, data);
       }
-      
       this.scrollPosition = window.scrollY;
       document.body.classList.add('no-scroll');
       document.body.style.top = -this.scrollPosition + 'px';
-      
       this.overlay.style.display = 'flex';
       void this.overlay.offsetWidth;
       this.overlay.classList.add(this.config.activeClass);
       this.isOpen = true;
     },
-    
     close: function() {
       if (!this.overlay || !this.isOpen) return;
-      
       var self = this;
       var typeConfig = this.modalTypes[this.currentModalType];
-      
       if (typeConfig && typeConfig.onClose) {
         typeConfig.onClose.call(this, this.currentContent);
       }
-      
       this.overlay.classList.remove(this.config.activeClass);
-      
       setTimeout(function() {
         self.overlay.style.display = 'none';
         document.body.classList.remove('no-scroll');
         document.body.style.top = '';
         window.scrollTo(0, self.scrollPosition);
         self.isOpen = false;
-        
         if (typeConfig && typeConfig.afterClose) {
           typeConfig.afterClose.call(self);
         }
-
         if (self.currentContent) {
           self.currentContent.style.display = 'none';
         }
-
         self.currentModalType = null;
         self.currentContent = null;
       }, this.config.animationDuration);
     },
-    
     isModalOpen: function() {
       return this.isOpen;
     }
@@ -1074,18 +779,12 @@ document.addEventListener("DOMContentLoaded", function() {
   
   var modalReady = ModalSystem.init();
 
-  // ===========================
-  // SONGLINK MODAL
-  // ===========================
-  
   if (modalReady) {
     ModalSystem.registerModalType('songlink', {
       contentClass: 'modalcontentsonglink',
-      
       updateContent: function(content, data) {
         var self = this;
         var s = ModalSelectors.songlink;
-        
         var dynamicContent = content.querySelector(s.dynamicContent);
         var loadingIndicator = self.container.querySelector(s.loadingIndicator);
         var thumbnail = content.querySelector(s.thumbnail);
@@ -1093,57 +792,40 @@ document.addEventListener("DOMContentLoaded", function() {
         var spotifyContainer = content.querySelector(s.spotifyContainer);
         var songlinkIframe = content.querySelector(s.songlinkIframe);
         var songlinkIframeContainer = content.querySelector(s.songlinkIframeContainer);
-
-        var loadingState = {
-          thumbnail: false,
-          spotify: false,
-          songlink: false,
-          minimumTimeElapsed: false,
-          timeout: false
-        };
-        
+        var loadingState = {thumbnail: false, spotify: false, songlink: false, minimumTimeElapsed: false, timeout: false};
         var loadingStartTime = Date.now();
-        
         if (dynamicContent) {
           dynamicContent.style.visibility = 'visible';
           dynamicContent.style.opacity = '1';
         }
-        
         if (loadingIndicator) {
           loadingIndicator.style.display = 'block';
           loadingIndicator.style.opacity = '1';
           loadingIndicator.style.visibility = 'visible';
           loadingIndicator.style.zIndex = '999';
         }
-        
         [thumbnail, titleElement, spotifyContainer, songlinkIframeContainer].forEach(function(el) {
           if (el) {
             el.style.opacity = '0';
             el.style.visibility = 'hidden';
           }
         });
-        
         setTimeout(function() {
           loadingState.minimumTimeElapsed = true;
           checkAllReady();
         }, Config.modalLoadingMinTime);
-        
         function checkAllReady() {
           var isSpotify = data.songUrl && data.songUrl.includes('spotify.com');
-          var allReady = loadingState.minimumTimeElapsed && loadingState.songlink && 
-                         (!isSpotify || (loadingState.thumbnail && loadingState.spotify));
-          
+          var allReady = loadingState.minimumTimeElapsed && loadingState.songlink && (!isSpotify || (loadingState.thumbnail && loadingState.spotify));
           if (allReady || loadingState.timeout) {
             var elapsedTime = Date.now() - loadingStartTime;
             var remainingTime = Math.max(0, Config.modalLoadingMinTime - elapsedTime);
-            
             setTimeout(function() {
               if (loadingIndicator) {
                 loadingIndicator.style.transition = 'opacity 0.3s ease';
                 loadingIndicator.style.opacity = '0';
                 setTimeout(function() { loadingIndicator.style.display = 'none'; }, 300);
               }
-              
               [thumbnail, titleElement, spotifyContainer].forEach(function(el) {
                 if (el && !el.style.display.includes('none')) {
                   el.style.visibility = 'visible';
@@ -1151,7 +833,6 @@ document.addEventListener("DOMContentLoaded", function() {
                   el.style.opacity = '1';
                 }
               });
-              
               if (songlinkIframeContainer) {
                 setTimeout(function() {
                   songlinkIframeContainer.style.visibility = 'visible';
@@ -1162,12 +843,10 @@ document.addEventListener("DOMContentLoaded", function() {
             }, remainingTime);
           }
         }
-        
         setTimeout(function() {
           loadingState.timeout = true;
           checkAllReady();
         }, Config.modalLoadingTimeout);
-
         if (thumbnail) {
           thumbnail.style.opacity = '0';
           thumbnail.style.display = 'block';
@@ -1179,11 +858,9 @@ document.addEventListener("DOMContentLoaded", function() {
         }
         if (songlinkIframe) songlinkIframe.style.opacity = '0';
         if (songlinkIframeContainer) songlinkIframeContainer.style.opacity = '0';
-        
         if (songlinkIframe && data.songUrl) {
           var embedUrl = 'https://song.link/embed?url=' + encodeURIComponent(data.songUrl);
           songlinkIframe.src = embedUrl;
-          
           songlinkIframe.onload = function() {
             setTimeout(function() {
               songlinkIframe.style.transition = 'opacity 0.4s ease';
@@ -1196,7 +873,6 @@ document.addEventListener("DOMContentLoaded", function() {
             loadingState.songlink = true;
             checkAllReady();
           };
-          
           setTimeout(function() {
             if (!loadingState.songlink) {
               loadingState.songlink = true;
@@ -1206,7 +882,6 @@ document.addEventListener("DOMContentLoaded", function() {
             }
           }, Config.modalLoadingTimeout);
         }
-        
         if (data.songUrl && data.songUrl.includes('spotify.com')) {
           SpotifyHelper.fetchOEmbed(data.songUrl, function(error, oembedData) {
             if (error || !oembedData) {
@@ -1222,7 +897,6 @@ document.addEventListener("DOMContentLoaded", function() {
               checkAllReady();
               return;
             }
-            
             if (thumbnail && oembedData.thumbnail_url) {
               thumbnail.src = oembedData.thumbnail_url;
               thumbnail.alt = oembedData.title || 'Album artwork';
@@ -1242,7 +916,6 @@ document.addEventListener("DOMContentLoaded", function() {
             } else {
               loadingState.thumbnail = true;
             }
-            
             if (titleElement && oembedData.title) {
               titleElement.textContent = oembedData.title;
               setTimeout(function() {
@@ -1250,11 +923,9 @@ document.addEventListener("DOMContentLoaded", function() {
                 titleElement.style.opacity = '1';
               }, 150);
             }
-            
             if (spotifyContainer && oembedData.iframe_url) {
               spotifyContainer.innerHTML = '';
               spotifyContainer.style.display = 'block';
-              
               var spotifyIframe = document.createElement('iframe');
               spotifyIframe.src = oembedData.iframe_url;
               spotifyIframe.style.width = '100%';
@@ -1265,7 +936,6 @@ document.addEventListener("DOMContentLoaded", function() {
               spotifyIframe.setAttribute('allowfullscreen', '');
               spotifyIframe.setAttribute('allow', 'autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture');
               spotifyIframe.setAttribute('loading', 'lazy');
-              
               spotifyIframe.onload = function() {
                 setTimeout(function() {
                   spotifyContainer.style.transition = 'opacity 0.4s ease';
@@ -1274,7 +944,6 @@ document.addEventListener("DOMContentLoaded", function() {
                 loadingState.spotify = true;
                 checkAllReady();
               };
-              
               var spotifyTimeout = DeviceHelper.isIOS() ? Config.spotifyTimeoutIOS : Config.spotifyTimeoutDesktop;
               setTimeout(function() {
                 if (!loadingState.spotify) {
@@ -1287,7 +956,6 @@ document.addEventListener("DOMContentLoaded", function() {
                   checkAllReady();
                 }
               }, spotifyTimeout);
-              
               spotifyContainer.appendChild(spotifyIframe);
             } else {
               loadingState.spotify = true;
@@ -1307,14 +975,11 @@ document.addEventListener("DOMContentLoaded", function() {
           loadingState.spotify = true;
         }
       },
-      
       onClose: function(content) {},
-      
       afterClose: function() {
         var content = this.container.querySelector('.modalcontent');
         if (!content) return;
         var s = ModalSelectors.songlink;
-        
         var songlinkIframe = content.querySelector(s.songlinkIframe);
         var songlinkIframeContainer = content.querySelector(s.songlinkIframeContainer);
         if (songlinkIframe) {
@@ -1322,24 +987,20 @@ document.addEventListener("DOMContentLoaded", function() {
           songlinkIframe.style.opacity = '0';
           if (songlinkIframeContainer) songlinkIframeContainer.style.opacity = '0';
         }
-        
         var spotifyContainer = content.querySelector(s.spotifyContainer);
         if (spotifyContainer) {
           spotifyContainer.innerHTML = '';
           spotifyContainer.style.opacity = '0';
         }
-        
         var thumbnail = content.querySelector(s.thumbnail);
         if (thumbnail) {
           thumbnail.src = '';
           thumbnail.style.opacity = '0';
         }
-        
         var titleElement = content.querySelector(s.title);
         if (titleElement) titleElement.style.opacity = '0';
       }
     });
-    
     document.querySelectorAll('[data-song-url]').forEach(function(button) {
       button.addEventListener('click', function(e) {
         e.preventDefault();
@@ -1351,61 +1012,47 @@ document.addEventListener("DOMContentLoaded", function() {
     });
   }
 
-  // ===========================
-  // YOUTUBE MODAL
-  // ===========================
-  
   if (modalReady) {
     ModalSystem.registerModalType('youtube', {
       contentClass: 'modalcontentyoutubelink',
-      
       updateContent: function(content, data) {
         var self = this;
         var s = ModalSelectors.youtube;
-        
         var dynamicContent = content.querySelector(s.dynamicContent);
         var loadingIndicator = self.container.querySelector(s.loadingIndicator);
         var titleElement = content.querySelector(s.title);
         var videoWrapper = content.querySelector(s.videoWrapper);
         var youtubeIframe = content.querySelector(s.youtubeElement);
-        
         var loadingState = { videoReady: false, minimumTimeElapsed: false, timeout: false };
         var loadingStartTime = Date.now();
-        
         if (dynamicContent) {
           dynamicContent.style.visibility = 'visible';
           dynamicContent.style.opacity = '1';
         }
-        
         if (loadingIndicator) {
           loadingIndicator.style.display = 'block';
           loadingIndicator.style.opacity = '1';
           loadingIndicator.style.visibility = 'visible';
           loadingIndicator.style.zIndex = '999';
         }
-        
         if (videoWrapper) {
           videoWrapper.style.opacity = '0';
           videoWrapper.style.visibility = 'hidden';
         }
-        
         setTimeout(function() {
           loadingState.minimumTimeElapsed = true;
           checkReady();
         }, Config.modalLoadingMinTime);
-        
         function checkReady() {
           if ((loadingState.minimumTimeElapsed && loadingState.videoReady) || loadingState.timeout) {
             var elapsedTime = Date.now() - loadingStartTime;
             var remainingTime = Math.max(0, Config.modalLoadingMinTime - elapsedTime);
-            
             setTimeout(function() {
               if (loadingIndicator) {
                 loadingIndicator.style.transition = 'opacity 0.3s ease';
                 loadingIndicator.style.opacity = '0';
                 setTimeout(function() { loadingIndicator.style.display = 'none'; }, 300);
               }
-              
               if (videoWrapper) {
                 videoWrapper.style.visibility = 'visible';
                 videoWrapper.style.transition = 'opacity 0.5s ease';
@@ -1414,14 +1061,11 @@ document.addEventListener("DOMContentLoaded", function() {
             }, remainingTime);
           }
         }
-        
         setTimeout(function() {
           loadingState.timeout = true;
           checkReady();
         }, Config.modalLoadingTimeout);
-        
         if (titleElement && data.videoTitle) titleElement.textContent = data.videoTitle;
-        
         if (youtubeIframe && data.videoUrl) {
           var videoId = data.videoUrl.match(/^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/);
           if (videoId && videoId[2].length === 11) {
@@ -1439,34 +1083,27 @@ document.addEventListener("DOMContentLoaded", function() {
           }
         }
       },
-      
       onClose: function(content) {},
-      
       afterClose: function() {
         var content = this.container.querySelector('.modalcontentyoutube');
         if (!content) return;
         var s = ModalSelectors.youtube;
-        
         var loadingIndicator = content.querySelector(s.loadingIndicator);
         if (loadingIndicator) {
           loadingIndicator.style.display = 'none';
           loadingIndicator.style.opacity = '0';
         }
-        
         var videoWrapper = content.querySelector(s.videoWrapper);
         if (videoWrapper) {
           videoWrapper.style.opacity = '0';
           videoWrapper.style.visibility = 'hidden';
         }
-        
         var youtubeIframe = content.querySelector(s.youtubeElement);
         if (youtubeIframe) youtubeIframe.src = 'about:blank';
-        
         var titleElement = content.querySelector(s.title);
         if (titleElement) titleElement.textContent = 'Watch Video';
       }
     });
-        
     document.querySelectorAll('[data-video-url]').forEach(function(button) {
       button.addEventListener('click', function(e) {
         e.preventDefault();
@@ -1482,10 +1119,6 @@ document.addEventListener("DOMContentLoaded", function() {
     });
   }
 
-  // ===========================
-  // PUBLIC API
-  // ===========================
-  
   window.GolsieModals = {
     open: function(modalType, data) {
       if (modalReady) ModalSystem.open(modalType, data);
@@ -1511,7 +1144,6 @@ document.addEventListener("DOMContentLoaded", function() {
   };
   
   window.GolsieGallery = {
-    // Control default gallery
     goTo: function(index) {
       if (GallerySystem.galleries[0]) {
         GallerySystem.galleries[0].goToImage(index);
@@ -1527,7 +1159,6 @@ document.addEventListener("DOMContentLoaded", function() {
         GallerySystem.galleries[0].prev();
       }
     },
-    // Create custom gallery
     create: function(config) {
       return GallerySystem.init(config);
     }
@@ -1540,17 +1171,16 @@ document.addEventListener("DOMContentLoaded", function() {
   };
   
   window.GolsieShows = {
-     refresh: function() {
-       ShowsSystem.fetchShows();
-     },
-     getShows: function() {
-       return ShowsSystem.state.shows;
-     }
-   };
-   
-   // Mark as successfully loaded from GitHub
-   window.GolsieScriptLoaded = true;
-   document.body.classList.add('git-js');
-   console.log('[Golsie] ✓ GitHub script v1.0.0 loaded');
-   
-   });
+    refresh: function() {
+      ShowsSystem.fetchShows();
+    },
+    getShows: function() {
+      return ShowsSystem.state.shows;
+    }
+  };
+  
+  window.GolsieScriptLoaded = true;
+  document.body.classList.add('git-js');
+  console.log('[Golsie] ✓ GitHub script v1.0.0 loaded');
+
+});

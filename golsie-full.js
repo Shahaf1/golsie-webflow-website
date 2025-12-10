@@ -1,4 +1,3 @@
-<script>
 document.addEventListener("DOMContentLoaded", function() {
   
   // ===========================
@@ -1541,16 +1540,17 @@ document.addEventListener("DOMContentLoaded", function() {
   };
   
   window.GolsieShows = {
-    refresh: function() {
-      ShowsSystem.fetchShows();
-    },
-    getShows: function() {
-      return ShowsSystem.state.shows;
-    }
-  };
-
-  // Mark as successfully loaded from GitHub
-  window.GolsieScriptLoaded = true;
-  document.body.classList.add('git-js');
-});
-</script>
+     refresh: function() {
+       ShowsSystem.fetchShows();
+     },
+     getShows: function() {
+       return ShowsSystem.state.shows;
+     }
+   };
+   
+   // Mark as successfully loaded from GitHub
+   window.GolsieScriptLoaded = true;
+   document.body.classList.add('git-js');
+   console.log('[Golsie] ✓ GitHub script v1.0.0 loaded');
+   
+   });

@@ -13,8 +13,15 @@ document.addEventListener("DOMContentLoaded", function() {
     videoKeepAliveInterval: 90000,
     hashRemovalDelay: 400,
     galleryComponentLoadDelay: 500,
+
     bandsintownApiKey: '43aa4e2b7dc992c34f1bf8503a4d9667',
     bandsintownArtistName: 'Golsie',
+    bandsintownOtherArtists: [
+      {
+        name: 'One: FortyFive Band',         
+        apiKey: '9cbab9f2cdfcee8711eefe84b54035d8'  
+      }
+    ],
     showsMaxDisplay: 100,
     showsLoadingMinTime: 500,
     showsDefaultFilter: 'all'
@@ -386,46 +393,112 @@ document.addEventListener("DOMContentLoaded", function() {
     },
     fetchShows: function() {
       var self = this;
-      var upcomingUrl = 'https://rest.bandsintown.com/artists/' + Config.bandsintownArtistName + '/events?app_id=' + Config.bandsintownApiKey + '&date=upcoming';
-      var pastUrl = 'https://rest.bandsintown.com/artists/' + Config.bandsintownArtistName + '/events?app_id=' + Config.bandsintownApiKey + '&date=past';
-      Promise.all([
-        fetch(upcomingUrl).then(function(response) { return response.json(); }),
-        fetch(pastUrl).then(function(response) { return response.json(); })
-      ]).then(function(results) {
-        self.state.upcomingShows = results[0] || [];
-        self.state.pastShows = results[1] || [];
-        self.state.allShows = self.state.upcomingShows.concat(self.state.pastShows);
-        self.state.isCached = true;
-        self.applyFilter(Config.showsDefaultFilter);
-      }).catch(function(error) {
-        self.hideLoading();
-        self.showEmpty();
-      });
+      var fetchPromises = [];
+      
+      var golsieUpcomingUrl = 'https://rest.bandsintown.com/artists/' + 
+        Config.bandsintownArtistName + '/events?app_id=' + 
+        Config.bandsintownApiKey + '&date=upcoming'; 
+      var golsiePastUrl = 'https://rest.bandsintown.com/artists/' + 
+        Config.bandsintownArtistName + '/events?app_id=' + 
+        Config.bandsintownApiKey + '&date=past';
+      
+      fetchPromises.push(
+        fetch(golsieUpcomingUrl).then(function(r) { return r.json(); }),
+        fetch(golsiePastUrl).then(function(r) { return r.json(); })
+      );
+      
+      if (Config.bandsintownOtherArtists && Config.bandsintownOtherArtists.length > 0) {
+        Config.bandsintownOtherArtists.forEach(function(artist) {
+          var upcomingUrl = 'https://rest.bandsintown.com/artists/' + 
+            artist.name + '/events?app_id=' + 
+            artist.apiKey + '&date=upcoming';
+          
+          var pastUrl = 'https://rest.bandsintown.com/artists/' + 
+            artist.name + '/events?app_id=' + 
+            artist.apiKey + '&date=past';
+          
+          fetchPromises.push(
+            fetch(upcomingUrl).then(function(r) { return r.json(); }),
+            fetch(pastUrl).then(function(r) { return r.json(); })
+          );
+        });
+      }
+      
+      Promise.all(fetchPromises)
+        .then(function(results) {
+          var golsieUpcoming = results[0] || [];
+          var golsiePast = results[1] || [];
+          
+          golsieUpcoming.forEach(function(show) {
+            show.isGolsie = true;
+          });
+          golsiePast.forEach(function(show) {
+            show.isGolsie = true;
+          });
+          
+          var otherUpcoming = [];
+          var otherPast = [];
+          
+          for (var i = 2; i < results.length; i += 2) {
+            var upcoming = results[i] || [];
+            var past = results[i + 1] || [];
+            
+            upcoming.forEach(function(show) {
+              show.isGolsie = false;
+            });
+            past.forEach(function(show) {
+              show.isGolsie = false;
+            });
+            
+            otherUpcoming = otherUpcoming.concat(upcoming);
+            otherPast = otherPast.concat(past);
+          }
+          
+          self.state.golsieShows = golsieUpcoming.concat(golsiePast);
+          self.state.otherShows = otherUpcoming.concat(otherPast);
+          self.state.upcomingShows = golsieUpcoming.concat(otherUpcoming);
+          self.state.pastShows = golsiePast.concat(otherPast);
+          self.state.allShows = self.state.upcomingShows.concat(self.state.pastShows);
+          
+          self.state.isCached = true;
+          self.applyFilter(Config.showsDefaultFilter);
+        })
+        .catch(function(error) {
+          console.error('[Golsie] Shows fetch error:', error);
+          self.hideLoading();
+          self.showEmpty();
+        });
     },
     applyFilter: function(filterType) {
       var self = this;
       self.state.currentFilter = filterType;
       var showsToDisplay = [];
+      
       switch(filterType) {
         case 'all':
           showsToDisplay = self.state.upcomingShows;
           break;
+          
         case 'golsie':
           showsToDisplay = self.state.upcomingShows.filter(function(show) {
-            return show.artist.name.toLowerCase() === 'golsie';
+            return show.isGolsie === true;
           });
           break;
+          
         case 'other':
           showsToDisplay = self.state.upcomingShows.filter(function(show) {
-            return show.artist.name.toLowerCase() !== 'golsie';
+            return show.isGolsie === false;
           });
           break;
+          
         case 'previous':
           showsToDisplay = self.state.pastShows;
           break;
+          
         default:
           showsToDisplay = self.state.upcomingShows;
       }
+      
       self.state.filteredShows = showsToDisplay;
       self.renderShows(showsToDisplay);
       self.updateFilterButtons(filterType);

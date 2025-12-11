@@ -375,7 +375,15 @@ document.addEventListener("DOMContentLoaded", function() {
       this.container = container;
       this.showLoading();
       this.setupFilterButtons();
-      this.fetchShows();
+      var urlParams = new URLSearchParams(window.location.search);
+      var filterParam = urlParams.get('filter');      
+      this.fetchShows(filterParam);
+      
+      if (filterParam) {
+        setTimeout(function() {
+          history.replaceState(null, document.title, window.location.pathname);
+        }, 500);
+      }
     },
     showLoading: function() {
       var loading = document.querySelector(this.config.loadingSelector);
@@ -391,7 +399,7 @@ document.addEventListener("DOMContentLoaded", function() {
       var empty = document.querySelector(this.config.emptySelector);
       if (empty) empty.style.display = 'block';
     },
-    fetchShows: function() {
+    fetchShows: function(initialFilter) {
       var self = this;
       var fetchPromises = [];
       
@@ -461,7 +469,12 @@ document.addEventListener("DOMContentLoaded", function() {
           self.state.allShows = self.state.upcomingShows.concat(self.state.pastShows);
           
           self.state.isCached = true;
-          self.applyFilter(Config.showsDefaultFilter);
+          var filterToApply = initialFilter || Config.showsDefaultFilter;
+          var validFilters = ['all', 'golsie', 'other', 'previous'];
+          if (validFilters.indexOf(filterToApply) === -1) {
+            filterToApply = Config.showsDefaultFilter;
+          }
+          self.applyFilter(filterToApply);        
         })
         .catch(function(error) {
           console.error('[Golsie] Shows fetch error:', error);
@@ -605,6 +618,10 @@ document.addEventListener("DOMContentLoaded", function() {
           } else {
             buttonText = 'Tickets';
           }
+        }
+        if (self.state.currentFilter === 'previous') {
+          buttonText = 'Past';
+          ticketBtn.style.opacity = '0.6';
         }
         ticketBtn.href = ticketUrl;
         ticketBtn.target = '_blank';

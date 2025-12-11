@@ -22,99 +22,264 @@ This project uses a **hybrid deployment strategy**:
 ## 🚀 Deployment
 
 ### GitHub CDN (Primary)
-The site loads from jsDelivr CDN automatically:
+The site loads from jsDelivr CDN with automatic fallback chain:
+
+**CDN URL:**
 ```
-https://cdn.jsdelivr.net/gh/Shahaf1/golsie-webflow-website@main/golsie-full.js
+https://cdn.jsdelivr.net/gh/Shahaf1/golsie-webflow-website@v100/golsie-full.js
+```
+
+**Raw GitHub URL (fallback):**
+```
+https://raw.githubusercontent.com/Shahaf1/golsie-webflow-website/main/golsie-full.js
 ```
 
 **Benefits:**
-- ⚡ Fast global delivery (~50-200ms)
+- ⚡ Fast global delivery (~50-200ms from CDN)
 - 📦 No file size limits
 - 🔄 Easy updates (just push to GitHub)
 - 🌍 99.9% uptime
 - 💾 Automatic caching
+- 🛡️ Automatic fallback to raw GitHub if CDN fails
+- 🎯 Version control with tags
+
+---
+
+### Loader Configuration
+
+The loader in **Webflow Custom Code → Head** controls all loading logic:
+
+```javascript
+var GITHUB_TAG = 'v100'; // Version tag (change to force refresh)
+var TIMEOUT = 5000;      // CDN timeout (5 seconds)
+var FALLBACK_ENABLED = true; // Enable Webflow fallback
+
+// Code-level force options (for permanent overrides)
+var CODE_FORCE_RAW_GITHUB = false; // Always use raw GitHub
+var CODE_FORCE_FALLBACK = false;   // Always use Webflow fallback
+```
+
+**Loading sequence:**
+1. Try jsDelivr CDN (`@v100` tag)
+2. On failure/timeout → Try raw GitHub
+3. On GitHub failure → Load Webflow fallback
+
+---
 
 ### Webflow Fallback
-If GitHub CDN fails (network issues, CDN down, timeout), the site automatically loads a minified version from Webflow's servers.
+If both GitHub sources fail, the site automatically loads a minified version from Webflow's servers (Custom Code → Footer).
 
 **Fallback triggers:**
-- CDN network error
-- Load timeout (>5 seconds)
-- Script initialization failure
+- CDN network error or timeout
+- Raw GitHub fetch failure
+- Script parsing error
+- Manual force via `?fallback` parameter
 
-## 🧪 Testing
+## 🧪 Testing & Loading Modes
 
-### Normal Mode
+The loader supports **3 loading strategies** with automatic fallback:
+
+### 1. **Normal Mode (CDN Primary)** ⭐ Recommended
 ```
 https://golsie-music.design.webflow.com
 ```
-→ Loads from GitHub CDN  
-→ Body class: `git-js`
+**Behavior:**
+1. Attempts jsDelivr CDN (fast, cached)
+2. Falls back to raw GitHub on CDN failure
+3. Falls back to Webflow on GitHub failure
 
-### Test Fallback Mode
+**Body class:** `git-js`  
+**Speed:** ~50-200ms (CDN cached)
+
+---
+
+### 2. **Raw GitHub Mode** (Bypass CDN)
+```
+https://golsie-music.design.webflow.com?raw
+```
+**Behavior:**
+- Skips jsDelivr CDN entirely
+- Fetches directly from GitHub raw URL
+- Instant updates (no CDN cache wait)
+- Use for immediate testing after Git push
+
+**Body class:** `forcegit-js`  
+**Speed:** ~500-2000ms (varies by location)  
+**Use case:** Testing new code immediately after pushing to GitHub
+
+---
+
+### 3. **Fallback Mode** (Webflow Only)
 ```
 https://golsie-music.design.webflow.com?fallback
 ```
-→ Forces Webflow fallback  
-→ Body class: `webflow-js`
+**Behavior:**
+- Skips GitHub entirely
+- Loads Webflow-hosted version only
+- Tests fallback system
 
-### Console Monitoring
+**Body class:** `webflow-js`  
+**Speed:** ~100-300ms  
+**Use case:** Testing fallback functionality
 
-**GitHub Success:**
-```
-[Golsie] Attempting to load from GitHub CDN...
-[Golsie] ✓ GitHub CDN loaded successfully (150ms)
-[Golsie] ✓ Script initialized successfully
+---
+
+## 🔧 Code-Level Force Options
+
+Edit the loader script to permanently force a specific mode:
+
+```javascript
+var CODE_FORCE_RAW_GITHUB = false; // Set true: Always use raw GitHub
+var CODE_FORCE_FALLBACK = false;   // Set true: Always use Webflow
 ```
 
-**Fallback Success:**
+---
+
+## 📊 Loading Priority & Fallback Chain
+
 ```
-[Golsie] ✗ GitHub CDN failed to load
-[Golsie] → Loading fallback from Webflow...
-[Golsie] ✓ Fallback loaded successfully
+┌─────────────────────────────────────────┐
+│  NORMAL MODE (Default)                   │
+└─────────────────────────────────────────┘
+         │
+         ↓
+┌─────────────────────────────────────────┐
+│  1. jsDelivr CDN                         │
+│     cdn.jsdelivr.net/gh/Shahaf1/...     │
+│     • Fast (50-200ms)                    │
+│     • Cached globally                    │
+│     • Body class: git-js                 │
+└─────────────────────────────────────────┘
+         │
+         │ (on timeout/error)
+         ↓
+┌─────────────────────────────────────────┐
+│  2. GitHub Raw                           │
+│     raw.githubusercontent.com/...        │
+│     • Direct from GitHub                 │
+│     • No cache delay                     │
+│     • Body class: forcegit-js            │
+└─────────────────────────────────────────┘
+         │
+         │ (on fetch/parse error)
+         ↓
+┌─────────────────────────────────────────┐
+│  3. Webflow Fallback                     │
+│     Embedded in Footer                   │
+│     • Always reliable                    │
+│     • Full functionality                 │
+│     • Body class: webflow-js             │
+└─────────────────────────────────────────┘
 ```
 
-**Test Mode:**
-```
-[Golsie] 🧪 TEST MODE: Fallback forced via ?fallback parameter
-[Golsie] Skipping GitHub CDN, loading Webflow fallback...
-```
+---
 
 ## 🎯 Body Classes
 
-The loader automatically adds classes to track which version is active:
+The loader automatically adds classes to track which version loaded:
 
-- **`.git-js`** - GitHub CDN version (primary, 99%+ of traffic)
-- **`.webflow-js`** - Webflow fallback version (rare, <1% of traffic)
+| Class | Source | When Used | Speed |
+|-------|--------|-----------|-------|
+| `.git-js` | jsDelivr CDN | Normal load (99%+ traffic) | ~50-200ms |
+| `.forcegit-js` | GitHub Raw | CDN failed OR `?raw` param | ~500-2000ms |
+| `.webflow-js` | Webflow Fallback | All GitHub failed OR `?fallback` param | ~100-300ms |
 
 Use these for debugging or conditional styling:
 ```css
+/* CDN Active (most common) */
 .git-js .debug-badge::before {
   content: "CDN Active";
+  background: #00ff00;
 }
 
+/* Raw GitHub Active (testing/CDN failed) */
+.forcegit-js .debug-badge::before {
+  content: "Raw GitHub Active";
+  background: #ffaa00;
+}
+
+/* Webflow Fallback Active (rare) */
 .webflow-js .debug-badge::before {
   content: "Fallback Active";
+  background: #ff0000;
 }
 ```
 
+**Use cases:**
+- Show loading indicator only on slow raw GitHub loads
+- Display "testing mode" banner when `?raw` is used
+- Track which version users are loading in analytics
+
 ## 🔄 Updating the Script
 
-### Quick Updates (No Webflow Changes)
+### Quick Updates (No Webflow Changes Required)
+
+**Standard update flow:**
 1. Edit `golsie-full.js` locally
 2. Commit and push to GitHub
-3. Changes live in 1-5 minutes (CDN cache refresh)
-4. **No Webflow republish needed!**
+3. **Update version tag in loader** (see below)
+4. Changes live in 1-5 minutes (CDN cache refresh)
+5. **No Webflow republish needed!**
 
-### Version Management
+**For instant testing:**
+- Use `?raw` parameter to bypass CDN cache
+- Example: `yoursite.com?raw` loads directly from GitHub
+
+---
+
+### Version Tagging System
+
+The loader uses **version tags** instead of `@main` for better cache control:
+
+**In `webflow-loader.html`:**
+```javascript
+var GITHUB_TAG = 'v100'; // Change this to force CDN refresh
+```
+
+**How it works:**
+- `@v100` → First version (initial deployment)
+- `@v101` → After first update
+- `@v102` → After second update
+- etc.
+
+**When to update the tag:**
+1. Push changes to GitHub
+2. Edit loader in Webflow Head
+3. Change `GITHUB_TAG` from `'v100'` to `'v101'`
+4. Publish Webflow site
+5. CDN immediately fetches new version
+
+---
+
+### Git Release Tags (Optional)
+
+For production releases, you can also use Git tags:
+
 ```bash
 # Tag a release
 git tag v1.0.1
 git push origin v1.0.1
 
-# Use specific version in CDN URL
-https://cdn.jsdelivr.net/gh/Shahaf1/golsie-webflow-website@v1.0.1/golsie-full.js
+# Then update loader to:
+var GITHUB_TAG = 'v1.0.1';
 ```
+
+**Advantage:** Git tag = permanent reference  
+**Disadvantage:** Requires Git knowledge
+
+**Simple version numbers (`v100`, `v101`) are recommended** for most users.
+
+---
+
+### CDN Cache Behavior
+
+| Branch/Tag | Cache Duration | Update Speed |
+|------------|---------------|--------------|
+| `@main` | 24 hours | ❌ Very slow (up to 24hrs) |
+| `@v100`, `@v101`, etc. | 7 days | ✅ Instant (change tag = new URL) |
+| `@commit-hash` | Permanent | ✅ Instant (new hash = new URL) |
+
+**⚠️ Never use `@main` in production** - cache delays are too long!
 
 ## ✨ Features
 
@@ -175,7 +340,7 @@ var Config = {
   modalLoadingMinTime: 700,
   
   // Bandsintown API
-  bandsintownApiKey: '******',
+  bandsintownApiKey: '43aa4e2b7dc992c34f1bf8503a4d9667',
   bandsintownArtistName: 'Golsie',
   showsMaxDisplay: 100,
   showsDefaultFilter: 'all',
@@ -221,7 +386,7 @@ window.GolsieShows.getShows();
 
 ## 🔗 Links
 
-- **Production Site:** https://golsie-music.design.webflow.com - www.golsiemusic.com
+- **Production Site:** https://golsie-music.design.webflow.com
 - **GitHub Repo:** https://github.com/Shahaf1/golsie-webflow-website
 - **CDN URL:** https://cdn.jsdelivr.net/gh/Shahaf1/golsie-webflow-website@main/golsie-full.js
 

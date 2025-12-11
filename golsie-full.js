@@ -619,7 +619,7 @@ document.addEventListener("DOMContentLoaded", function() {
             buttonText = 'Tickets';
           }
         }
-        if (self.state.currentFilter === 'previous') {
+        if (this.state.currentFilter === 'previous') {
           buttonText = 'Past';
           ticketBtn.style.opacity = '0.6';
         }

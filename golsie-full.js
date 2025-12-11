@@ -536,15 +536,24 @@ document.addEventListener("DOMContentLoaded", function() {
           self.container.removeChild(child);
         }
       });
+      
       setTimeout(function() {
         self.hideLoading();
+        
         if (shows.length === 0) {
           self.showEmpty();
           return;
-        }
-        var sortedShows = shows.sort(function(a, b) {
-          return new Date(b.datetime) - new Date(a.datetime);
-        });
+        }        
+        var sortedShows;
+        if (self.state.currentFilter === 'previous') {
+          sortedShows = shows.sort(function(a, b) {
+            return new Date(b.datetime) - new Date(a.datetime);
+          });
+        } else {
+          sortedShows = shows.sort(function(a, b) {
+            return new Date(a.datetime) - new Date(b.datetime);
+          });
+        } 
         var displayShows = sortedShows.slice(0, Config.showsMaxDisplay);
         displayShows.forEach(function(show) {
           self.createShowItem(show);

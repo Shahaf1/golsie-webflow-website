@@ -601,7 +601,7 @@ document.addEventListener("DOMContentLoaded", function() {
           if (show.offers && show.offers.length > 0 && show.offers[0].url) {
             buttonText = 'Tickets';
           } else if (show.free) {
-            buttonText = 'Free Entrance';
+            buttonText = 'Free';
           } else {
             buttonText = 'Tickets';
           }

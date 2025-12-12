@@ -378,12 +378,6 @@ document.addEventListener("DOMContentLoaded", function() {
       var urlParams = new URLSearchParams(window.location.search);
       var filterParam = urlParams.get('filter');      
       this.fetchShows(filterParam);
-      
-      if (filterParam) {
-        setTimeout(function() {
-          history.replaceState(null, document.title, window.location.pathname);
-        }, 500);
-      }
     },
     showLoading: function() {
       var loading = document.querySelector(this.config.loadingSelector);

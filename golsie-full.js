@@ -620,7 +620,7 @@ document.addEventListener("DOMContentLoaded", function() {
           }
         }
         if (this.state.currentFilter === 'previous') {
-          buttonText = 'Past';
+          buttonText = 'Ended';
           ticketBtn.style.opacity = '0.6';
         }
         ticketBtn.href = ticketUrl;

@@ -380,6 +380,7 @@ document.addEventListener("DOMContentLoaded", function() {
       this.fetchShows(filterParam);
     },
     showLoading: function() {
+      this.hideAllShows();
       var loading = document.querySelector(this.config.loadingSelector);
       if (loading) loading.style.display = 'flex';
       var empty = document.querySelector(this.config.emptySelector);
@@ -390,8 +391,18 @@ document.addEventListener("DOMContentLoaded", function() {
       if (loading) loading.style.display = 'none';
     },
     showEmpty: function() {
+      this.hideAllShows();
       var empty = document.querySelector(this.config.emptySelector);
       if (empty) empty.style.display = 'block';
+    },
+    hideAllShows: function() {
+      if (!this.container) return;     
+      var children = Array.from(this.container.children);
+      children.forEach(function(child) {
+        if (child.getAttribute('data-event-type') === 'generated') {
+          child.style.display = 'none'; 
+        }
+      });
     },
     fetchShows: function(initialFilter) {
       var self = this;
@@ -537,6 +548,7 @@ document.addEventListener("DOMContentLoaded", function() {
     },
     renderShows: function(shows) {
       var self = this;
+      this.hideAllShows();
       var children = Array.from(self.container.children);
       children.forEach(function(child) {
         if (child !== self.template && child.getAttribute('data-event-type') === 'generated') {

@@ -40,6 +40,7 @@ document.addEventListener("DOMContentLoaded", function() {
     },
     youtube: {
       title: '.modaltitletextyoutube',
+      contentClass: '.modalcontentyoutubelink',
       dynamicContent: '.modalcontentyoutubelink .modaldynamiccontent',
       loadingIndicator: '.modalloading',
       videoWrapper: '.modalyoutubewrapper',
@@ -1190,9 +1191,9 @@ document.addEventListener("DOMContentLoaded", function() {
       },
       onClose: function(content) {},
       afterClose: function() {
-        var content = this.container.querySelector('.modalcontentyoutube');
-        if (!content) return;
         var s = ModalSelectors.youtube;
+        var content = this.container.querySelector(s.contentClass);
+        if (!content) return;
         var loadingIndicator = content.querySelector(s.loadingIndicator);
         if (loadingIndicator) {
           loadingIndicator.style.display = 'none';
